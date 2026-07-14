@@ -8,61 +8,70 @@ def obtener_datos_servidor():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(("127.0.0.1", 5555))
-        # Enviamos un código falso solo para forzar la respuesta de error del servidor,
-        # la cual rompe la conexión pero nos dice si está activo.
+        # Forzar un chequeo de estado saltándonos la verificación de código
         s.send("WEB_CHECK".encode())
         s.close()
         return {"status": "Online"}
     except:
         return {"status": "Offline"}
 
-# Plantilla HTML con espacio para el código de 6 letras
+def obtener_jugadores_reales():
+    # Intenta obtener la lista real de juego simulando un cliente get
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(("127.0.0.1", 5555))
+        s.send("WEB_CHECK".encode()) # Esto desconectará pero sirve para ver si responde
+        s.close()
+        # Nota: Para un panel dinámico completo, el servidor centraliza los datos. 
+        # Enviamos un diccionario de prueba si el Creador responde
+        return {"status": "Online"}
+    except:
+        return {"status": "Offline"}
+
 HTML_PANEL = """
 <!DOCTYPE html>
 <html>
 <head>
     <title>Among Us - Panel de Control</title>
     <style>
-        body { font-family: sans-serif; background: #11141a; color: white; text-align: center; }
-        .contenedor { max-width: 600px; margin: 50px auto; background: #1e2330; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .codigo-box { background: #ffc107; color: #111; font-size: 24px; font-weight: bold; padding: 10px; border-radius: 6px; display: inline-block; letter-spacing: 4px; margin: 15px 0; }
-        .jugador { background: #282e3d; padding: 12px; margin: 10px 0; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
-        .vivo { color: #4caf50; font-weight: bold; }
+        body { font-family: sans-serif; background: #11141a; color: white; text-align: center; padding-top: 50px; }
+        .contenedor { max-width: 500px; margin: 0 auto; background: #1e2330; padding: 30px; border-radius: 12px; }
+        .status { font-size: 20px; font-weight: bold; padding: 10px; margin: 20px; }
+        .online { color: #4caf50; }
+        .offline { color: #f44336; }
     </style>
 </head>
 <body>
     <div class="contenedor">
         <h1>🚀 Sala de Monitoreo - Skeld</h1>
-        <p>Pídele al administrador el código de 6 letras que aparece en la consola del Server-Bot para conectar tus Client-Bots.</p>
-        
-        <!-- Aquí se informaría el estado o acciones del juego remoto -->
-        <div id="estado-servidor">Verificando conexión con el Creador...</div>
+        <p>Estado de los sistemas de red:</p>
+        <div id="estado" class="status">Verificando...</div>
     </div>
-
     <script>
-        async function verificarServidor() {
+        async function check() {
             const res = await fetch('/api/estado');
-            const datos = await res.json();
-            const div = document.getElementById('estado-servidor');
-            if (datos.status === "Online") {
-                div.innerHTML = '<p style="color: #4caf50;">● El Server-Bot está encendido y esperando jugadores.</p>';
+            const d = await res.json();
+            const div = document.getElementById('estado');
+            if(d.status === "Online") {
+                div.innerText = "● CREADOR ONLINE (Esperando Conexiones)";
+                div.className = "status online";
             } else {
-                div.innerHTML = '<p style="color: #f44336;">○ El Server-Bot está apagado.</p>';
+                div.innerText = "○ CREADOR OFFLINE (Enciende Server_Bot.py)";
+                div.className = "status offline";
             }
         }
-        setInterval(verificarServidor, 3000);
-        verificarServidor();
+        setInterval(check, 2000); check();
     </script>
 </body>
 </html>
 """
 
 @app.route('/')
-def home():
+def home(): 
     return render_template_string(HTML_PANEL)
 
 @app.route('/api/estado')
-def api_estado():
+def api_estado(): 
     return jsonify(obtener_datos_servidor())
 
 if __name__ == '__main__':
